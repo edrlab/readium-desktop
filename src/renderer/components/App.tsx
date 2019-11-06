@@ -14,7 +14,6 @@ import * as React from "react";
 import Dropzone from "react-dropzone";
 import { Provider } from "react-redux";
 import * as dialogActions from "readium-desktop/common/redux/actions/dialog";
-import * as styles from "readium-desktop/renderer/assets/styles/app.css";
 import DialogManager from "readium-desktop/renderer/components/dialog/DialogManager";
 import PageManager from "readium-desktop/renderer/components/PageManager";
 import { lazyInject } from "readium-desktop/renderer/di";
@@ -22,7 +21,11 @@ import { RootState } from "readium-desktop/renderer/redux/states";
 import { Store } from "redux";
 import { diRendererSymbolTable } from "../diSymbolTable";
 import ToastManager from "./toast/ToastManager";
+
+import HighContrastManager from "./utils/HighContrastManager";
 import SameFileImportManager from "./utils/SameFileImportManager";
+
+import * as styles from "readium-desktop/renderer/assets/styles/app.css";
 
 export default class App extends React.Component<any, undefined> {
 
@@ -95,6 +98,7 @@ export default class App extends React.Component<any, undefined> {
                                     <DialogManager/>
                                     <SameFileImportManager/>
                                     <ToastManager/>
+                                    <HighContrastManager />
                                 </div>;
                             }}
                         </Dropzone>

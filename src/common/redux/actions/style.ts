@@ -1,3 +1,5 @@
+import { HighContrastColors } from "readium-desktop/renderer/redux/states/style";
+
 // ==LICENSE-BEGIN==
 // Copyright 2017 European Digital Reading Lab. All rights reserved.
 // Licensed to the Readium Foundation under one or more contributor license agreements.
@@ -5,10 +7,13 @@
 // that can be found in the LICENSE file exposed on Github (readium) in the project repository.
 // ==LICENSE-END==
 
-import * as winActions from "readium-desktop/common/redux/actions/win";
-import * as opdsActions from "./opds";
+export enum ActionType {
+    HighContrastChanged = "HIGH_CONTRAST_CHANGED",
+}
 
-export {
-    opdsActions,
-    winActions,
-};
+export function highContrastChanged(enabled: boolean, colors: HighContrastColors) {
+    return {
+        type: ActionType.HighContrastChanged,
+        payload: { enabled, colors },
+    };
+}
