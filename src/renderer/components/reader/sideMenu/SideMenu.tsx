@@ -6,6 +6,7 @@
 // ==LICENSE-END==
 
 import * as React from "react";
+import * as ReactDOM from "react-dom";
 import * as styles from "readium-desktop/renderer/assets/styles/reader-app.css";
 import {
     TranslatorProps, withTranslator,
@@ -38,15 +39,32 @@ interface IState {
 }
 
 export class SideMenu extends React.Component<IProps, IState> {
+    private appElement: HTMLElement;
+    private appOverlayElement: HTMLElement;
+    private rootElement: HTMLElement;
 
     constructor(props: IProps) {
         super(props);
+
+        this.appElement = document.getElementById("app");
+        this.appOverlayElement = document.getElementById("app-overlay");
+        this.rootElement = document.createElement("div");
 
         this.state = {
             openedSection: undefined,
         };
 
         this.handleClickSection = this.handleClickSection.bind(this);
+    }
+
+    public componentDidMount() {
+        this.appElement.setAttribute("aria-hidden", "true");
+        this.appOverlayElement.appendChild(this.rootElement);
+    }
+
+    public componentWillUnmount() {
+        this.appElement.setAttribute("aria-hidden", "false");
+        this.appOverlayElement.removeChild(this.rootElement);
     }
 
     public render(): React.ReactElement<{}> {
@@ -56,8 +74,8 @@ export class SideMenu extends React.Component<IProps, IState> {
         if (!open) {
             return <></>;
         }
-
-        return (<>
+        return ReactDOM.createPortal(
+            (<>
             <AccessibleMenu
                 dontCloseWhenClickOutside
                 focusMenuButton = {this.props.focusMenuButton}
@@ -86,7 +104,9 @@ export class SideMenu extends React.Component<IProps, IState> {
             { open &&
                 <div aria-hidden={true} className={styles.menu_background} onClick={() => toggleMenu()}/>
             }
-        </>);
+            </>),
+            this.rootElement,
+        );
     }
 
     private handleClickSection(id: number) {

@@ -174,8 +174,9 @@ export class ReaderHeader extends React.Component<IProps, undefined> {
                                 >
                                     <SVG svg={SettingsIcon} title={ __("reader.navigation.settingsTitle")}/>
                                 </button>
+                                {this.props.readerOptionsProps.open &&
                                 <ReaderOptions {...this.props.readerOptionsProps}
-                                    focusSettingMenuButton={this.focusSettingMenuButton}/>
+                                    focusSettingMenuButton={this.focusSettingMenuButton}/>}
                             </li>
                             <li
                             {...(this.props.menuOpen && {style: {backgroundColor: "rgb(193, 193, 193)"}})}
@@ -186,9 +187,10 @@ export class ReaderHeader extends React.Component<IProps, undefined> {
                                     ref={this.navigationMenuButtonRef}
                                 >
                                 <SVG svg={TOCIcon} title={ __("reader.navigation.openTableOfContentsTitle")}/>
-                            </button>
-                            <ReaderMenu {...this.props.readerMenuProps}
-                                focusNaviguationMenu={this.focusNaviguationMenuButton}/>
+                                </button>
+                                {this.props.readerMenuProps.open &&
+                                <ReaderMenu {...this.props.readerMenuProps}
+                                focusNaviguationMenu={this.focusNaviguationMenuButton}/>}
                             </li>
                             <li  className={styles.blue}>
                                 <button

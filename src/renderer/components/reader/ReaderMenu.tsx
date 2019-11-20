@@ -112,6 +112,10 @@ export class ReaderMenu extends React.Component<IProps, IState> {
             return <></>;
         }
 
+        if (!open) {
+            return <></>;
+        }
+
         const sections: SectionData[] = [
             {
                 title: __("reader.marks.toc"),
