@@ -42,6 +42,10 @@ let mainFct: ((
 
 let storePromise: Promise<Store<RootState>>;
 
+// tslint:disable-next-line: promise-function-async
+export const getStorePromiseFromProcessFile = () =>
+    storePromise;
+
 // yargs configuration
 yargs
     .scriptName(_APP_NAME)
@@ -176,13 +180,13 @@ yargs
             }
         },
     )
-    .command("$0 [path]",
+    .command("$0 [path..]",
         "import and read an epub or lcpl file",
         (y) =>
             y.positional("path", {
                 describe: "path of your publication, it can be an absolute, relative path",
                 type: "string",
-                coerce: (arg) => path.resolve(arg),
+                coerce: (arg) => (Array.isArray(arg) ? arg : [arg]).map((a) => path.resolve(a)),
             })
                 .completion()
         ,
@@ -214,17 +218,23 @@ yargs
                     try {
                         await app.whenReady();
 
-                        try {
-                            if (!await openFileFromCli(argv.path)) {
-                                const errorMessage = `Import failed for the publication path : ${argv.path}`;
-                                throw new Error(errorMessage);
+                        const pathArray = Array.isArray(argv.path) ? (argv.path as string[]) : [argv.path];
+                        const promiseArray = pathArray.map(async (p) => {
+                            try {
+
+                                if (!await openFileFromCli(p)) {
+                                    const errorMessage = `Import failed for the publication path : ${p}`;
+                                    throw new Error(errorMessage);
+                                }
+                            } catch (e) {
+                                debug("$0 error :", e);
+                                const errorTitle = "Import Failed";
+                                dialog.showErrorBox(errorTitle, e.toString());
+                                process.stderr.write(e.toString() + EOL);
                             }
-                        } catch (e) {
-                            debug("$0 error :", e);
-                            const errorTitle = "Import Failed";
-                            dialog.showErrorBox(errorTitle, e.toString());
-                            process.stderr.write(e.toString() + EOL);
-                        }
+                        });
+
+                        await Promise.all(promiseArray);
 
                     } catch (_err) {
                         // ignore
