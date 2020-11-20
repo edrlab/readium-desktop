@@ -7,21 +7,18 @@
 
 import { Action } from "readium-desktop/common/models/redux";
 
-export const ID = "READER_CLOSE_SUCCESS";
+export const ID = "PUBLICATION_UPDATED";
 
-export interface Payload {
-    identifier: string;
-    publicationIdentifier: string;
+// tslint:disable-next-line: no-empty-interface
+interface Payload {
 }
 
-export function build(identifier: string, pubId: string):
+export function build():
     Action<typeof ID, Payload> {
 
     return {
         type: ID,
         payload: {
-            identifier,
-            publicationIdentifier: pubId,
         },
     };
 }

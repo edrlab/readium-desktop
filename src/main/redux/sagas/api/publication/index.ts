@@ -8,6 +8,9 @@
 // import { IPublicationApi } from "readium-desktop/common/api/interface/publicationApi.interface";
 
 import { IPublicationApi } from "readium-desktop/common/api/interface/publicationApi.interface";
+import { readerActions } from "readium-desktop/common/redux/actions";
+import { callTyped, takeTyped } from "readium-desktop/common/redux/sagas/typed-saga";
+import { put, spawn } from "redux-saga/effects";
 
 import { deletePublication } from "./delete";
 import { exportPublication } from "./export";
@@ -19,6 +22,42 @@ import { importFromFs, importFromLink } from "./import";
 import { search } from "./search";
 import { updateTags } from "./updateTags";
 
+function* importFromFsMayBeShiftPressed(
+    filePath: string[] | string,
+    shiftKeyPress = false,
+): ReturnType<typeof importFromFs> {
+
+    const pubView = yield* callTyped(importFromFs, filePath);
+
+    if (shiftKeyPress && Array.isArray(pubView)) {
+
+        for (const pub of pubView) {
+
+            if (pub?.identifier) {
+
+                yield spawn(function*() {
+
+                    yield put(readerActions.openRequest.build(pub.identifier));
+
+                    while (true) {
+
+                        const action = yield* takeTyped(readerActions.closeSuccess.build);
+                        const pubId = action?.payload?.publicationIdentifier;
+                        if (pubId === pub.identifier) {
+
+                            yield* callTyped(deletePublication, pubId);
+
+                            break;
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    return pubView;
+}
+
 export const publicationApi: IPublicationApi = {
     findAll,
     get: getPublication,
@@ -28,6 +67,6 @@ export const publicationApi: IPublicationApi = {
     getAllTags,
     search,
     exportPublication,
-    importFromFs,
+    importFromFs: importFromFsMayBeShiftPressed,
     importFromLink,
 };

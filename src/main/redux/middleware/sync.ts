@@ -10,6 +10,7 @@ import { syncIpc } from "readium-desktop/common/ipc";
 import { ActionWithSender, SenderType } from "readium-desktop/common/models/sync";
 import {
     apiActions, dialogActions, downloadActions, i18nActions, keyboardActions, lcpActions,
+    publicationActions,
     readerActions, toastActions,
 } from "readium-desktop/common/redux/actions";
 import { ActionSerializer } from "readium-desktop/common/services/serializer";
@@ -28,6 +29,9 @@ const SYNCHRONIZABLE_ACTIONS: string[] = [
     // netActions.online.ID,
 
     dialogActions.openRequest.ID,
+
+    // update catalog view
+    publicationActions.publicationUpdated.ID,
 
     // readerActions.openError.ID,
     // readerActions.closeError.ID,
