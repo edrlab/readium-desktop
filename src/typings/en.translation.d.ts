@@ -557,6 +557,8 @@ declare namespace typed_i18n {
     readonly "fontSize": string,
     readonly "justification": string,
     readonly "justify": string,
+    readonly "left": string,
+    readonly "right": string,
     readonly "letterSpacing": string,
     readonly "lineSpacing": string,
     readonly "margin": string,
@@ -727,6 +729,8 @@ declare namespace typed_i18n {
   readonly "fontSize": string,
   readonly "justification": string,
   readonly "justify": string,
+  readonly "left": string,
+  readonly "right": string,
   readonly "letterSpacing": string,
   readonly "lineSpacing": string,
   readonly "margin": string,
@@ -786,6 +790,8 @@ declare namespace typed_i18n {
   (_: "reader.settings.fontSize", __?: {}): string;
   (_: "reader.settings.justification", __?: {}): string;
   (_: "reader.settings.justify", __?: {}): string;
+  (_: "reader.settings.left", __?: {}): string;
+  (_: "reader.settings.right", __?: {}): string;
   (_: "reader.settings.letterSpacing", __?: {}): string;
   (_: "reader.settings.lineSpacing", __?: {}): string;
   (_: "reader.settings.margin", __?: {}): string;
