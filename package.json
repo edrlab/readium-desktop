@@ -16,6 +16,7 @@
     "clean": "rimraf dist && rimraf release",
     "test": "cross-env JEST_TESTS=1 jest --config=jest.config.js --verbose --runInBand --bail=1 --no-cache \"test\"",
     "testFile": "cross-env JEST_TESTS=1 jest --config=jest.config.js --verbose --runInBand --bail=1 --no-cache ",
+    "patchElectronBuilder": "node ./scripts/replace-in-file.js \"node_modules/app-builder-lib/out/electron/electronMac.js\" \"helperPlist.CFBundleIdentifier = helperBundleIdentifier;\" \"helperPlist.CFBundleIdentifier = `${helperBundleIdentifier}.${postfix.replace(/[^a-z0-9]/gim,'')}`;\"",
     "postinstall": "npm run rmLevelDownDeep && npm run rmLevelDownPrebuilds && npm rebuild --runtime=electron --target=11.2.3 --disturl=https://atom.io/download/atom-shell --build-from-source",
     "rmLevelDownDeep": "rimraf \"./node_modules/pouchdb-adapter-leveldb/node_modules/leveldown\"",
     "rmLevelSQLite3Deep": "rimraf \"./node_modules/websql/node_modules/sqlite3/\" && rimraf \"./node_modules/redux-devtools-cli/node_modules/sqlite3/\"",
@@ -97,30 +98,7 @@
   "homepage": "https://github.com/edrlab/readium-desktop",
   "build": {
     "productName": "Thorium",
-    "appId": "io.github.edrlab.thorium",
-    "protocols": {
-      "name": "thorium",
-      "schemes": [
-        "thorium"
-      ]
-    },
-    "afterSign": "scripts/notarize.js",
-    "dmg": {
-      "sign": false,
-      "contents": [
-        {
-          "x": 410,
-          "y": 150,
-          "type": "link",
-          "path": "/Applications"
-        },
-        {
-          "x": 130,
-          "y": 150,
-          "type": "file"
-        }
-      ]
-    },
+    "appId": "org.edrlab.thorium",
     "files": [
       "node_modules/",
       "external-assets/",
@@ -218,14 +196,43 @@
       "executableName": "thorium",
       "category": "Office"
     },
+    "afterSign": "./scripts/notarize.js",
     "mac": {
       "category": "public.app-category.developer-tools",
-      "target": "dmg",
-      "type": "distribution",
+      "target": [
+        "mas"
+      ],
+      "type": "development",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "./scripts/entitlements.mac.plist",
-      "entitlementsInherit": "./scripts/entitlements.mac.plist"
+      "entitlementsInherit": "./scripts/entitlements.mac.plist",
+      "bundleVersion": "202005042",
+      "bundleShortVersion": "202005042",
+      "icon": "./resources/icon.png"
+    },
+    "dmg": {
+      "sign": false,
+      "contents": [
+        {
+          "x": 410,
+          "y": 150,
+          "type": "link",
+          "path": "/Applications"
+        },
+        {
+          "x": 130,
+          "y": 150,
+          "type": "file"
+        }
+      ]
+    },
+    "mas": {
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "entitlements": "./scripts/entitlements.mac.mas.plist",
+      "entitlementsInherit": "./scripts/entitlements.mac.mas.inherit.plist",
+      "provisioningProfile": "./dev.provisionprofile"
     },
     "appx": {
       "displayName": "Thorium Reader",
@@ -332,6 +339,7 @@
     "electron-builder": "^22.9.1",
     "electron-devtools-installer": "^3.1.1",
     "electron-notarize": "^1.0.0",
+    "electron-osx-sign": "^0.4.15",
     "eslint": "^7.20.0",
     "eslint-config-prettier": "^7.2.0",
     "eslint-plugin-prettier": "^3.3.1",
