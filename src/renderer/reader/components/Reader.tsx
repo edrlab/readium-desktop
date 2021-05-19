@@ -66,19 +66,35 @@ import {
     ttsPlay, ttsPlaybackRate, ttsPrevious, ttsResume, TTSStateEnum, ttsStop, ttsVoice,
 } from "@r2-navigator-js/electron/renderer/index";
 import { reloadContent } from "@r2-navigator-js/electron/renderer/location";
-import { Locator as R2Locator } from "@r2-shared-js/models/locator";
+import { Locator, Locator as R2Locator } from "@r2-shared-js/models/locator";
 
 import { IEventBusPdfPlayer, TToc } from "../pdf/common/pdfReader.type";
 import { pdfMountAndReturnBus } from "../pdf/driver";
 import {
-    readerLocalActionBookmarks, readerLocalActionSetConfig, readerLocalActionSetLocator,
+    readerLocalActionBookmarks, readerLocalActionDivina, readerLocalActionSetConfig,
+    readerLocalActionSetLocator,
 } from "../redux/actions";
+import { defaultReadingMode } from "../redux/state/divina";
 import optionsValues, {
-    AdjustableSettingsNumber, IReaderMenuProps, IReaderOptionsProps, TdivinaReadingMode,
+    AdjustableSettingsNumber, IReaderMenuProps, IReaderOptionsProps, isDivinaReadingMode,
+    TdivinaReadingMode,
 } from "./options-values";
 import PickerManager from "./picker/PickerManager";
 
 const capitalizedAppName = _APP_NAME.charAt(0).toUpperCase() + _APP_NAME.substring(1);
+
+const isDivinaLocation = (data: any): data is { pageIndex: number, nbOfPages: number, locator: Locator } => {
+    return typeof data === "object"
+        && typeof data.pageIndex === "number"
+        && typeof data.nbOfPages === "number"
+        && typeof data.locator === "object"
+        && typeof data.locator.href === "string"
+        && typeof data.locator.locations === "object"
+        && typeof data.locator.locations.position === "number"
+        && typeof data.locator.locations.progression === "number"
+        && data.locator.locations.progression >= 0
+        && data.locator.locations.progression <= 1;
+};
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface IBaseProps extends TranslatorProps {
@@ -112,7 +128,6 @@ interface IState {
     visibleBookmarkList: IBookmarkState[];
     currentLocation: LocatorExtended;
 
-    divinaReadingMode: TdivinaReadingMode;
     divinaReadingModeSupported: TdivinaReadingMode[];
     divinaNumberOfPages: number;
 
@@ -185,7 +200,6 @@ class Reader extends React.Component<IProps, IState> {
             currentLocation: undefined,
 
             divinaNumberOfPages: 0,
-            divinaReadingMode: "single",
             divinaReadingModeSupported: [],
 
             pdfPlayerBusEvent: undefined,
@@ -298,29 +312,35 @@ class Reader extends React.Component<IProps, IState> {
 
             if (this.currentDivinaPlayer) {
 
-                this.currentDivinaPlayer.eventEmitter.on("pagechange", this.divinaSetLocation);
+                this.currentDivinaPlayer.eventEmitter.on("pagechange", (data: any) => {
+                    console.log("DIVINA: 'pagechange'", data);
+
+                    this.divinaSetLocation(data);
+                });
 
                 this.currentDivinaPlayer.eventEmitter.on(
                     "initialload",
                     () => {
 
                         console.log("divina loaded");
-                        // nextTick update
-                        setTimeout(() => {
+                        // // nextTick update
+                        // setTimeout(() => {
 
-                            try {
+                        //     try {
 
-                                const index = parseInt(this.props.locator?.locator?.href, 10);
-                                if (typeof index !== "undefined" && index >= 0) {
-                                    console.log("index divina", index);
-                                    this.currentDivinaPlayer.goToPageWithIndex(index);
-                                }
-                            } catch (e) {
-                                // ignore
-                                console.log("currentDivinaPlayer.goToPageWithIndex", e);
-                            }
+                        //         const index = parseInt(this.props.locator?.locator?.href, 10);
+                        //         if (typeof index !== "undefined" && index >= 0) {
+                        //             console.log("index divina", index);
+                        //             this.currentDivinaPlayer.goToPageWithIndex(index);
+                        //         }
+                        //     } catch (e) {
+                        //         // ignore
+                        //         console.log("currentDivinaPlayer.goToPageWithIndex", e);
+                        //     }
 
-                        }, 0);
+                        // }, 0);
+
+                        // Locator injected at initialization
 
                     },
                 );
@@ -388,7 +408,7 @@ class Reader extends React.Component<IProps, IState> {
             r2Publication: this.props.r2Publication,
             handleDivinaReadingMode: this.handleDivinaReadingMode.bind(this),
 
-            divinaReadingMode: this.state.divinaReadingMode,
+            divinaReadingMode: this.props.divinaReadingMode,
             divinaReadingModeSupported: this.state.divinaReadingModeSupported,
 
             isDivina: this.props.isDivina,
@@ -940,24 +960,37 @@ class Reader extends React.Component<IProps, IState> {
         }
     }
 
-    private divinaSetLocation = ({ pageIndex, nbOfPages }: { pageIndex: number, nbOfPages: number }) => {
-        const loc = {
-            locator: {
-                href: pageIndex.toString(),
-                locations: {
-                    position: pageIndex,
-                    progression: pageIndex / nbOfPages,
-                },
-            },
-        };
-        console.log("pageChange", pageIndex, nbOfPages);
+    private divinaSetLocation = (data: any) => {
 
-        // TODO: this is a hack! Forcing type LocatorExtended on this non-matching object shape
-        // only "works" because data going into the persistent store (see saveReadingLocation())
-        // is used appropriately and selectively when extracted back out ...
-        // however this may trip / crash future code
-        // if strict LocatorExtended model structure is expected when reading from the persistence layer.
-        this.handleReadingLocationChange(loc as LocatorExtended);
+
+        if (isDivinaLocation(data)) {
+
+            // const loc = {
+            //     locator: {
+            //         href: pageIndex.toString(),
+            //         locations: {
+            //             position: pageIndex,
+            //             progression: pageIndex / nbOfPages,
+            //         },
+            //     },
+            // };
+            // console.log("pageChange", pageIndex, nbOfPages);
+
+            const LocatorExtended: LocatorExtended = {
+                audioPlaybackInfo: undefined,
+                locator: data.locator,
+                paginationInfo: undefined,
+                selectionInfo: undefined,
+                selectionIsNew: undefined,
+                docInfo: undefined,
+                epubPage: undefined,
+                secondWebViewHref: undefined,
+            };
+            this.handleReadingLocationChange(LocatorExtended);
+        } else {
+            console.log("DIVINA: location bad formated ", data);
+        }
+
     }
 
     private async loadPublicationIntoViewport() {
@@ -1075,19 +1108,20 @@ class Reader extends React.Component<IProps, IState> {
                 publicationViewport.setAttribute("style", "display: block; position: absolute; left: 0; right: 0; top: 0; bottom: 0; margin: 0; padding: 0; box-sizing: border-box; background: white; overflow: hidden;");
             }
 
+            // Options for the Divina Player
             const options = {
-                // Variables
+                //maxNbOfUnitsToLoadAfter: null, // Forcing null for this value will load all units
+                initialNbOfResourcesToLoad: 1000,//null, // If 0 or null, the normal nb of initial resources will load
                 allowsDestroy: true,
-                allowsParallel: false,
-                maxNbOfPagesAfter: 6,
-                videoLoadTimeout: 2000,
-                alWlowsZoom: true,
+                allowsParallel: true,
+                allowsZoomOnDoubleTap: true,
+                allowsZoomOnCtrlOrAltScroll: true,
                 allowsSwipe: true,
                 allowsWheelScroll: true,
                 allowsPaginatedScroll: true,
-                isPaginationSticky: true,
                 isPaginationGridBased: true,
-                language: this.props.lang,
+                isPaginationSticky: true,
+                videoLoadTimeout: 2000,
             };
 
             this.currentDivinaPlayer = new divinaPlayer(this.mainElRef.current);
@@ -1101,19 +1135,65 @@ class Reader extends React.Component<IProps, IState> {
 
             const [url] = manifestUrl.split("/manifest.json");
             // Load the divina from its folder path
-            this.currentDivinaPlayer.openDivinaFromFolderPath(url, null, options);
+            const locator = this.props.locator;
+            this.currentDivinaPlayer.openDivinaFromFolderPath(url, locator, options);
 
             // Handle events emitted by the currentDivinaPlayer
             const eventEmitter = this.currentDivinaPlayer.eventEmitter;
-            eventEmitter.on("jsonload", (data: any) => {
-                console.log("JSON load", data);
-            });
-            eventEmitter.on("pagenavigatorscreation", (data: any) => {
-                console.log("Page navigators creation", data);
+            // deprecated
+            // eventEmitter.on("jsonload", (data: any) => {
+            //     console.log("JSON load", data);
+            // });
 
-                // Page navigators creation { readingModesArray: [ 'scroll' ], languagesArray: [ 'unspecified' ] }
-                this.setState({ divinaReadingModeSupported: data.readingModesArray });
+            eventEmitter.on("dataparsing", (data: any) => {
+
+                /**
+                 * once the Divina JSON has been parsed and pageNavigatorsData created
+                 * Data: { readingProgression, readingModesArray, languagesArray }, where readingProgression can be used to position navigation controls,
+                 * readingModesArray the list of all possible page navigators for the story, and languages the list of all possible languages for the story
+                 */
+
+                console.log("DIVINA: 'dataparsing'", data);
+
+                const isDataParsing = (data: any): data is { readingModesArray: TdivinaReadingMode[] } => {
+                    return typeof data === "object" &&
+                        Array.isArray(data.readingModesArray) &&
+                        data.readingModesArray.reduce((pv: any, cv: any) => pv && isDivinaReadingMode(cv), true);
+                };
+
+                if (isDataParsing(data)) {
+
+                    // readingMode
+
+                    const modes = data.readingModesArray;
+                    this.setState({ divinaReadingModeSupported: modes });
+
+                    const readingMode = this.props.divinaReadingMode;
+
+                    console.log("Reading mode from persistence : ", readingMode);
+
+                    if (modes.includes(readingMode)) {
+                        this.props.setReadingMode(readingMode);
+                    } else if (modes.includes(defaultReadingMode)) {
+                        this.props.setReadingMode(defaultReadingMode);
+                    } else if (modes[0]) {
+                        this.props.setReadingMode(modes[0]);
+                    } else {
+                        this.props.setReadingMode(defaultReadingMode);
+                    }
+                    console.log("DIVINA ReadingModeSupported", modes);
+                } else {
+                    console.error("DIVINA: 'dataparsing' evnt => unknow data", data);
+                }
+
             });
+            // deprecated
+            // eventEmitter.on("pagenavigatorscreation", (data: any) => {
+            //     console.log("Page navigators creation", data);
+
+            //     // Page navigators creation { readingModesArray: [ 'scroll' ], languagesArray: [ 'unspecified' ] }
+
+            // });
             eventEmitter.on("initialload", (data: any) => {
                 console.log("Initial load", data);
             });
@@ -1123,24 +1203,94 @@ class Reader extends React.Component<IProps, IState> {
                 // Language change { language: 'unspecified' }
             });
             eventEmitter.on("readingmodechange", (data: any) => {
-                console.log("Reading mode change", data);
+                console.log("DIVINA: 'readingmodechange'", data);
 
-                // Reading mode change { readingMode: 'scroll', nbOfPages: 1 }
-                this.setState({ divinaReadingMode: data.readingMode, divinaNumberOfPages: data.nbOfPages });
-                const index = parseInt(this.props.locator?.locator?.href, 10);
-                if (typeof index === "number" && index >= 0) {
-                    console.log("index divina", index);
+                /**
+                 * once a reading mode change has been validated (do note that, on opening a Divina, this event does happen after dataparsing)
+                 * Data: { readingMode, nbOfPages, hasSounds, isMuted }, where
+                 *  readingMode is “single” | “double” | “scroll” | “guided”,
+                 *  nbOfPages is that for the corresponding page navigator,
+                 *  hasSounds is a boolean that specifies whether the page navigator has sound animations,
+                 *  isMuted a boolead that specified whether the player is currently muted or not)
+                 */
+
+                const isReadingModeChangeData = (data: any): data is {readingMode: TdivinaReadingMode, nbOfPages: number, hasSounds: boolean, isMuted: boolean} => {
+
+                    return typeof data === "object" &&
+                        isDivinaReadingMode(data.readingMode) &&
+                        typeof data.nbOfPages === "number" &&
+                        typeof data.hasSounds === "boolean" &&
+                        typeof data.isMuted === "boolean";
+                };
+
+                if (isReadingModeChangeData(data)) {
+
+                    const readingMode = data.readingMode;
+                    this.props.setReadingMode(readingMode);
+
+                    this.setState({ divinaNumberOfPages: data.nbOfPages });
                 } else {
-                    this.divinaSetLocation({ pageIndex: 0, nbOfPages: data.nbOfPages });
+                    console.error("DIVINA: readingModeChange event => unknow data", data);
                 }
+
+                // deprecated ??
+                // Reading mode change { readingMode: 'scroll', nbOfPages: 1 }
+                // const index = parseInt(this.props.locator?.locator?.href, 10);
+                // if (typeof index === "number" && index >= 0) {
+                //     console.log("index divina", index);
+                // } else {
+                //     this.divinaSetLocation({ pageIndex: 0, nbOfPages: data.nbOfPages });
+                // }
             });
             eventEmitter.on("readingmodeupdate", (data: any) => {
                 console.log("Reading mode update", data);
 
-                this.setState({ divinaReadingMode: data.readingMode, divinaNumberOfPages: data.nbOfPages });
+                const isReadingModeUpdateData = (data: any): data is {readingMode: TdivinaReadingMode} => {
+                    return typeof data === "object" &&
+                    isDivinaReadingMode(data.readingMode);
+                };
+
+                if (isReadingModeUpdateData(data)) {
+                    const readingMode = data.readingMode;
+                    this.props.setReadingMode(readingMode);
+                } else {
+                    console.error("DIVINA: readingModeUpdate event => unknow data", data);
+                    
+                }
+
+                // deprecated
+                // this.setState({ divinaNumberOfPages: data.nbOfPages });
             });
             eventEmitter.on("pagechange", (data: any) => {
-                console.log("Page change", data);
+                console.log("DIVINA: 'pagechange'", data);
+
+                const isInPageChangeData = (data: any): data is {percent: number, locator: Locator} => {
+                    return typeof data === "object" &&
+                        typeof data.pageIndex === "number" &&
+                        typeof data.nbOfPages === "number" &&
+                        isDivinaLocation(locator);
+                };
+
+                if (isInPageChangeData(data)) {
+                    this.divinaSetLocation(data.locator);
+                } else
+                    console.error("DIVINA: pagechange event => unknow data", data);
+
+            });
+            eventEmitter.on("inpagesscroll", (data: any) => {
+                console.log("DIVINA: 'inpagesscroll'", data);
+
+                const isInPagesScrollData = (data: any): data is {percent: number, locator: Locator} => {
+                    return typeof data === "object" &&
+                        typeof data.percent === "number" &&
+                        isDivinaLocation(locator);
+                };
+
+                if (isInPagesScrollData(data)) {
+
+                    this.divinaSetLocation(data.locator);
+                } else
+                    console.error("DIVINA: inpagesscroll event => unknow data", data);
             });
 
         } else {
@@ -1703,6 +1853,7 @@ const mapStateToProps = (state: IReaderRootState, _props: IBaseProps) => {
         winId: state.win.identifier,
         bookmarks: state.reader.bookmark.map(([, v]) => v),
         readerMode: state.mode,
+        divinaReadingMode: state.reader.divina.readingMode,
     };
 };
 
@@ -1740,6 +1891,11 @@ const mapDispatchToProps = (dispatch: TDispatch, _props: IBaseProps) => {
         },
         deleteBookmark: (bookmark: IBookmarkState) => {
             dispatch(readerLocalActionBookmarks.pop.build(bookmark));
+        },
+        setReadingMode: (readingMode: TdivinaReadingMode) => {
+
+            console.log("Persist the reading mode", readingMode);
+            dispatch(readerLocalActionDivina.setReadingMode.build({readingMode}));
         },
     };
 };
