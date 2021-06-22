@@ -84,12 +84,19 @@ export function lockInstance() {
             // Someone tried to run a second instance, we should focus our window.
             debug("comandLine", argv, _workingDir);
 
-            const libraryAppWindow = getLibraryWindowFromDi();
-            if (libraryAppWindow) {
-                if (libraryAppWindow.isMinimized()) {
-                    libraryAppWindow.restore();
+            try {
+                // second-instance event can be called before library window created
+                const libraryAppWindow = getLibraryWindowFromDi();
+                if (libraryAppWindow) {
+                    if (libraryAppWindow.isMinimized()) {
+                        libraryAppWindow.restore();
+                    }
+                    libraryAppWindow.show(); // focuses as well
                 }
-                libraryAppWindow.show(); // focuses as well
+                
+                // TODO: need to wait the end of global init
+            } catch (e) {
+                debug("open second instance event : getLib error ", e);
             }
 
             cli(argv.filter((arg) => !arg.startsWith("--")));
